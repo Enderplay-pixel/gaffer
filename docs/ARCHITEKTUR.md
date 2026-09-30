@@ -211,3 +211,40 @@ Es gibt kein JUnit-Setup und keine Gametests.
 | Volumetrik-Rauschen an Echtzeit | W8/F4 brauchen eine Replay-Tick-Uhr im UBO (`vlD.z` ist frei) |
 | Szene pro Welt, kein Undo, keine Gruppen | Modell wird erweitert: Szene pro Replay, Undo-Stapel, Kanäle/Gruppen/Cues |
 | Bridge mit fester 18-Slot-Liste | F1 braucht benannte Parameter statt fester Indizes |
+| Kein Netzwerk, Szene pro Client | M1 ersetzt `LightScene`/`LightStore` durch Server-Entities |
+
+## 8. Netzwerk, Gizmo und Hilfslinien (geprüft für M1 und W15)
+
+**Netzwerk.** Im gesamten Editor-Fork gibt es kein `CustomPayload`, kein
+`ServerPlayNetworking` und kein `ClientPlayNetworking`. Der Main-Entrypoint
+`IRLRedactorMod` ist ein Stub. Lichter existieren nur im `LightScene` des eigenen Clients
+und in dessen `config/irl-redactor/lights/<worldKey>.json`. Neue Lichter heißen
+standardmäßig "Источник" (`PlacedLight.name`, `LightStore`, Namensmuster im Panel).
+
+**Gizmo und Hilfslinien.** Alle vier Befunde aus W15 bestätigt:
+
+| | Befund | Stelle |
+|---|---|---|
+| a | `GuideOverlay` und ImGuizmo zeichnen auf `ImGui.getBackgroundDrawList()`, also 2D ohne Tiefe | `GuideOverlay` Z. 24/188, `LightEditorPanel.drawGizmo` Z. 1186 |
+| b | `line()` zeichnet nur, wenn **beide** Endpunkte projizierbar sind; `project()` liefert false bei `clip.w <= 1e-4` | `GuideOverlay` Z. 212-218, 561-569 |
+| c | `GIZMO_SIZE = 0.08f` als `setGizmoSizeClipSpace`: konstante Bildschirmgröße | `LightEditorPanel` Z. 50, 1188 |
+| d | View/Projektion nachgebaut aus `mc.options.getFov()`, `rotateX(pitch)`, `rotateY(yaw+180)`, `perspective(fov, aspect, 0.05, 1000)` | `LightEditorPanel` Z. 1156-1164, `GuideOverlay` Z. 202-207 |
+
+Zu (d) steht der Messwert noch aus: Der Test (Abweichung Gizmo-Mitte gegen echte
+Projektion bei View Bobbing, Sprinten, FOV-Effekten, Flashback-FOV) läuft vor dem Fix.
+
+## 9. Photon v1.3b (Referenzpack)
+
+Der vorhandene Patch `photon.irlights` ist gegen Photon v1.3b geschrieben
+(`@packversion v1.3b`). Er fügt die Bibliothek über `shaders/include/buffers.glsl` ein,
+die Oberflächenbeleuchtung in `program/d4_deferred_shading.fsh` (deferred), die
+Volumetrik in `program/c0_vl.fsh`. Photon wandelt die Lichtfarbe mit `rec709_to_rec2020`
+um; das deutet auf lineare Rechnung hin. **Ob die Einspeisestelle wirklich linear ist,
+wird vor der P2-Kalibrierung geprüft und hier eingetragen** (Stand: offen).
+
+## 10. Flashback-Aufzeichnung der Gaffer-Entities (M1)
+
+**Stand: offen.** Hier kommt das Ergebnis des ersten M1-Tests hin: Zeichnet Flashback
+die synchronisierten Entity-Daten der Gaffer-Entities (inklusive eigener
+`TrackedData`-Handler, Pult-Entity und Weltzeit) vollständig auf, und spielt es sie im
+Replay Tick für Tick wieder ab?
