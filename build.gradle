@@ -1,0 +1,4 @@
+allprojects {
+    group = 'io.github.enderplaypixel'
+    version = '0.1.0'
+}

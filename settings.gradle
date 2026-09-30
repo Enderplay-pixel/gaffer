@@ -1,0 +1,6 @@
+rootProject.name = 'gaffer'
+
+// physics: reines Java ohne Minecraft (Fotometrie, Farbe, Dimmer, Gels).
+// core/ und mod/ (Fabric, Minecraft 1.21.11) kommen hinzu, sobald die Fabric-,
+// Mojang- und Modrinth-Server erreichbar sind (siehe docs/PLAN.md, Abschnitt 0).
+include 'physics'
