@@ -64,6 +64,10 @@ Kein Hauptpunkt ist `erledigt`; nur der reine Unit-Test-Unterpunkt W13-t.
 | W15-c | Hilfslinien hinter einer Wand: 0 Pixel im Wandbereich | offen | | | |
 | W15-d | Kamera im Lichtkegel, 72 Bilder in 5°-Schritten: Hilfslinien in keinem Bild ganz weg | offen | | | |
 | W15-e | Export-Screenshot ohne Lampenkörper und Hilfslinien | offen | | | |
+| W16 | Umgebungslicht: globale, keyframebare Regler Himmelslicht, Sonne/Mond, Vanilla-Blocklicht, je 0 bis 100 %, in Blenden angezeigt. Trennbarkeit in Photon geprüft: alle drei trennbar (ARCHITEKTUR.md 9.2), kein Anteil blockiert | offen | | | |
+| W16-a | Gametest: Himmelslicht auf 0 % senkt die Helligkeit einer Wand im Schatten um mindestens 3 Blenden | offen | | | |
+| W17 | Praktikabels: Gaffer-Lampe an leuchtenden Vanilla-Block gebunden (Laterne, Kerze, Fackel, Redstone-Lampe) ersetzt dessen Vanilla-Licht (Lightmap und LPV), statt sich zu addieren | offen | | | |
+| W17-b | Gametest: an eine Laterne gebundene Gaffer-Lampe ergibt dieselbe Helligkeit wie die Gaffer-Lampe allein, ±10 % | offen | | | |
 
 ## Flashback
 

@@ -137,8 +137,9 @@ Culling-Rand; `r` aus der Leistung (Abstand, an dem `E` unter 1/256 von `E_ref` 
 **P2.** ISO 2720: `N² / t = E * S / C`, `C = 250`, `t = (Verschlusswinkel / 360) / fps`,
 ND-Dichte `D`: `E_ref = C * N² * 10^D / (t * S)`. Graukarte 18 % bei `E_ref` ergibt
 Mittelgrau. Shader skaliert mit `k_pack / E_ref`, `k_pack` gemessen.
-**Vor der Kalibrierung:** prüfen, ob Photon an der Einspeisestelle
-(`d4_deferred_shading.fsh`, `irlite_lightSurface`) linear rechnet; Ergebnis in ARCHITEKTUR.md.
+**Linearität geprüft (Code):** Die Einspeisestelle in `d4_deferred_shading.fsh` liegt vor
+Nebel, Belichtung und Tonemapping und ist linear; Auto-Belichtung in Photon standardmäßig
+aus (ARCHITEKTUR.md 9.1). Vor der Kalibrierung noch per Render-Messung bestätigen.
 Beispiel: ISO 800, 180°, 24 fps, f/4, ohne ND ergibt `E_ref = 240 lx`.
 
 **W1 Farbe.** Planck-Kurve mit CIE-1931-2°-Normspektralwerten (CIE 015:2018), Grün/Magenta als
@@ -179,6 +180,20 @@ und zitiere sie im Code; ergibt `I = 16730 * 9 = 150.570 cd`.
 Blitz, TV, Pulsieren, Stroboskop, Explosion, Feuer, dazu Kerze, Blaulicht, Neonröhre beim
 Einschalten. Alle als Funktion von (Weltzeit + Teiltick, Seed, Parameter).
 
+**W16 Umgebungslicht.** Drei globale Regler (Himmel, Sonne/Mond, Vanilla-Blocklicht), je
+0 bis 100 %, angezeigt in Blenden (`log2(Anteil)`, 0 % = "aus"). Pro Client bzw. pro
+Replay-Überschreibung, keyframebar wie jeder andere Parameter (F1). Photon trennt alle drei
+Anteile (ARCHITEKTUR.md 9.2); die Faktoren kommen über den Globals-UBO in
+`get_diffuse_lighting` und die Glanzanteile. Höhlen-Mindestlicht und Himmelsspiegelung
+hängen am Himmelsregler, Sonnenglanz am Sonne/Mond-Regler.
+
+**W17 Praktikabels.** Eine Lampe kann an einen leuchtenden Vanilla-Block gebunden werden
+(Laterne, Kerze, Fackel, Redstone-Lampe). Die Bindung liegt in der Lampen-Entity (M1). Der
+Server setzt die Leuchtkraft dieser Position in seiner Lichtengine auf 0 (Mixin in die
+Blocklicht-Quelle), die Clients bekommen die Lichtdaten wie üblich; der Photon-Patch
+überspringt die Position zusätzlich in der LPV-Voxelisierung (Positionsliste im SSBO).
+Wird die Bindung gelöst oder die Lampe gelöscht, wird die Position neu beleuchtet.
+
 ## 5. Was in Java passiert, was im Shader
 
 | Punkt | Java (CPU) | Shader (GPU) |
@@ -195,6 +210,8 @@ Einschalten. Alle als Funktion von (Weltzeit + Teiltick, Seed, Parameter).
 | W2, W3 | Bibliothek, IES-Parser, Torblenden-Ebenen, Diffusion | IES-Textur-Array, 4 Schnittebenen, Wabe |
 | W5, W7, W9 bis W12, W14 | komplett Java | nichts |
 | W6 | Schalter, im Export aus | Nachpass über das fertige Bild |
+| W16 | Regler, Keyframes, Werte in den UBO | Faktoren auf Himmel-, Sonne/Mond- und Blocklicht-Summanden in Photon |
+| W17 | Bindung, Leuchtkraft 0 in der Server-Lichtengine | Position in der LPV-Voxelisierung überspringen |
 | W8 | Effektwerte aus Weltzeit | Volumetrik-Rauschen aus UBO-Zeit statt `frameTimeCounter` |
 | F1, F2, F4 | Keyframes als Überschreibung, Export-Modus | im Export keine Overlays |
 
@@ -217,7 +234,8 @@ Jeder Schritt endet mit Build, Tests, Eintrag in ABNAHME.md und einem Commit.
 8. **W2 + IES, W3 Lichtformer.**
 9. **P3, P4, P5, P6.**
 10. **W5 Messer, W6 False Color/Zebra.**
-11. **W7 Pult, W8 FX, W9 an Entity, W10 Setups, W11 Lichtplan.**
+11. **W7 Pult, W8 FX, W9 an Entity, W10 Setups, W11 Lichtplan, W16 Umgebungslicht,
+    W17 Praktikabels.**
 12. **F1, F2, F4.**
 13. **Performance-Messung** mit VlProfiler auf deiner GPU, Werte in ABNAHME.md.
 
@@ -228,7 +246,9 @@ Jeder Schritt endet mit Build, Tests, Eintrag in ABNAHME.md und einem Commit.
 | Flashback zeichnet eigene `TrackedData`-Handler oder die Pult-Entity nicht vollständig auf | M1-Konzept für Replays trägt nicht | Test zuerst (Abschnitt 2), Entscheidung mit Messwert |
 | Zwei Clients + dedizierter Server im automatischen Test | Fabric-Gametests starten nur einen Client | eigener Gradle-Orchestrator mit getrennten Prozessen und Dateiaustausch |
 | Viele Parameter pro Entity | große Datenpakete bei jeder Änderung | Gruppen-Einträge, nur geänderte Gruppe wird gesendet; Paketgröße messen |
-| Photon rechnet an der Einspeisestelle evtl. nicht linear oder hat Auto-Belichtung | "Blende 4" stimmt nicht | Prüfung vor P2, Auto-Belichtung im Gaffer-Modus aus, `k_pack` messen |
+| Geprüfter Photon-Commit (`v1.3-maintenance` `90451cc`) ist nicht exakt v1.3b | Zeilenangaben/Anker weichen ab | lokal gegen das Pack-Zip v1.3b abgleichen |
+| Nebel, Wolken oder Volumetrik bringen eigenes Himmelslicht ein | W16 "Himmel 0 %" nicht ganz dunkel | Gametest W16-a misst es; ggf. zusätzliche Faktoren |
+| W17: Lichtengine-Mixin muss auf Server und integriertem Server greifen, Lichtupdates bei Bindung auslösen | Doppellicht oder Lichtreste | Gametest W17-b, Lichtupdate der Position beim Binden/Lösen |
 | Sonne/Himmel/Blocklicht des Packs haben keine Einheit | Mischszenen nicht in Lux vergleichbar | dokumentieren; P4 liefert eigene Sonne in Lux |
 | Orthografische Schatten (P4) im 2681-Zeilen-`ShadowBaker` | Regressionen | eigener Kacheltyp im Spot-Atlas, Render-Tests vorher/nachher |
 | ImGuizmo zeichnet ohne Tiefe | W15 verlangt Tiefentest | Interaktion bei ImGuizmo, Darstellung in 3D; notfalls eigenes Gizmo |

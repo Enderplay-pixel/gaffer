@@ -235,12 +235,68 @@ Projektion bei View Bobbing, Sprinten, FOV-Effekten, Flashback-FOV) läuft vor d
 
 ## 9. Photon v1.3b (Referenzpack)
 
-Der vorhandene Patch `photon.irlights` ist gegen Photon v1.3b geschrieben
-(`@packversion v1.3b`). Er fügt die Bibliothek über `shaders/include/buffers.glsl` ein,
-die Oberflächenbeleuchtung in `program/d4_deferred_shading.fsh` (deferred), die
-Volumetrik in `program/c0_vl.fsh`. Photon wandelt die Lichtfarbe mit `rec709_to_rec2020`
-um; das deutet auf lineare Rechnung hin. **Ob die Einspeisestelle wirklich linear ist,
-wird vor der P2-Kalibrierung geprüft und hier eingetragen** (Stand: offen).
+**Geprüfter Quelltext.** Das Photon-Repo (github.com/sixthsurge/photon) hat keinen Tag
+"v1.3b". Geprüft wurde der Branch `v1.3-maintenance`, Commit `90451cc` (14.04.2026). Die
+drei Anker des IRL-Patches in `program/d4_deferred_shading.fsh` kommen dort jeweils genau
+einmal vor. **Offen:** lokal gegen das verwendete Pack-Zip v1.3b abgleichen.
+
+Der Patch `photon.irlights` (`@packversion v1.3b`) fügt die Bibliothek über
+`shaders/include/buffers.glsl` ein, die Oberflächenbeleuchtung in
+`program/d4_deferred_shading.fsh` (deferred), die Volumetrik in `program/c0_vl.fsh`.
+
+### 9.1 Einspeisestelle (P2): linear
+
+- `d4_deferred_shading.fsh` Z. 552: `fragment_color = get_diffuse_lighting(...)`, danach
+  Z. 580 Sonnenglanz, Z. 591 Spiegelungen, erst ab Z. 646/650 Nebel.
+- Der Patch addiert direkt nach dem diffusen Teil
+  `fragment_color += IRLITE_INTENSITY_LIVE * irlite_diffuse * material.albedo` (plus Glanz).
+  Das ist linearer Szenenwert, **vor** Nebel, Belichtung und Tonemapping.
+- Belichtung und Tonemapping erst in `program/c14_color_grading.fsh`
+  (Z. 209 `scene_color *= exposure`, Z. 221 `tonemap(...)`).
+- Automatische Belichtung ist in `settings.glsl` Z. 500 standardmäßig aus
+  (`AUTO_EXPOSURE_OFF`); manuelle Belichtung `MANUAL_EXPOSURE_VALUE 0.0`.
+- Photon selbst rechnet diffus mit `albedo * rcp_pi` (Z. 284 in `diffuse_lighting.glsl`),
+  der Patch ohne `1/π`. Der Faktor geht in die gemessene Kalibrierkonstante `k_pack` ein.
+
+**Ergebnis:** Die Einspeisestelle ist linear (Code-Befund). Die Bestätigung durch eine
+Render-Messung (Verdopplung der Lux ergibt doppelten linearen Wert vor dem Tonemapping)
+steht noch aus.
+
+### 9.2 Umgebungslicht (W16): welche Anteile trennbar sind
+
+`include/lighting/diffuse_lighting.glsl`, Funktion `get_diffuse_lighting`: Jeder Anteil ist
+ein eigener Summand in `lighting` und lässt sich mit einem eigenen Faktor versehen.
+
+| Anteil | Stelle | trennbar |
+|---|---|---|
+| Sonne/Mond (direkt, inkl. Bounce- und SSS-Anteil) | Z. 160-213, `lighting *= light_color` | ja |
+| Himmelslicht (Sky-SH bzw. `ambient_color`) | Z. 220-250, `lighting += skylight * ...` | ja |
+| Vanilla-Blocklicht | Z. 252-267, `mc_blocklight`, mit farbigen Lichtern über `get_lpv_blocklight` | ja |
+| Handlicht | Z. 271 | ja |
+| Emission (leuchtende Texturen) | Z. 274 | ja |
+| Höhlen-Mindestlicht | Z. 277-280, `CAVE_LIGHTING_I` | ja |
+| Sonnenglanz | `include/lighting/specular_lighting.glsl` `get_specular_highlight` | ja |
+| Himmelsspiegelung | `specular_lighting.glsl` `get_sky_reflection` | ja |
+
+Damit gibt Photon alle drei W16-Regler her (Himmel, Sonne/Mond, Blocklicht). Festlegung
+für "Innenraum abgehängt": Das Höhlen-Mindestlicht hängt am Himmelsregler, die
+Himmelsspiegelung ebenfalls; der Sonnenglanz hängt am Sonne/Mond-Regler. Nicht geprüft
+ist, ob Nebel, Wolken und Volumetrik des Packs eigenes Himmelslicht einbringen; das zeigt
+der Gametest W16-a.
+
+### 9.3 Vanilla-Blocklicht einer einzelnen Position (W17)
+
+Photon bekommt Blocklicht auf zwei Wegen:
+1. **Lightmap** (`light_levels.x`): Lichtlevel aus der Lichtengine von Minecraft, im
+   Mehrspieler vom Server berechnet und an die Clients geschickt.
+2. **LPV** (farbige Lichter, `COLORED_LIGHTS`): eigene Voxelisierung nach Block-ID
+   (`include/lighting/lpv/floodfill.glsl`, `is_emitter`), unabhängig vom Lichtlevel.
+
+Eine an eine Laterne gebundene Gaffer-Lampe muss deshalb beide Wege für genau diese Position
+abschalten: Leuchtkraft der Position in der Lichtengine des Servers auf 0 (Mixin in die
+Blocklicht-Quelle der Lichtengine) und im LPV-Shader die Position überspringen (Liste der
+gebundenen Positionen im SSBO). Die Emission der Blocktextur bleibt, die Laterne sieht also
+weiter eingeschaltet aus.
 
 ## 10. Flashback-Aufzeichnung der Gaffer-Entities (M1)
 
