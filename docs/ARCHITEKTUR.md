@@ -246,5 +246,14 @@ wird vor der P2-Kalibrierung geprüft und hier eingetragen** (Stand: offen).
 
 **Stand: offen.** Hier kommt das Ergebnis des ersten M1-Tests hin: Zeichnet Flashback
 die synchronisierten Entity-Daten der Gaffer-Entities (inklusive eigener
-`TrackedData`-Handler, Pult-Entity und Weltzeit) vollständig auf, und spielt es sie im
+`TrackedData`-Handler, Pult-Entity und `getTime()`) vollständig auf, und spielt es sie im
 Replay Tick für Tick wieder ab?
+
+Zusätzlich zu messen und hier einzutragen:
+
+| Prüfung | Erwartung | Ergebnis |
+|---|---|---|
+| Effekt bei `doDaylightCycle false` | läuft weiter (Uhr ist `getTime()`, nicht `getTimeOfDay()`) | offen |
+| Time-of-Day-Keyframe in Flashback | Effektverlauf unverändert | offen |
+| Freeze-Keyframe in Flashback | Wirkung auf Effekte wird dokumentiert | offen |
+| Tickrate-Keyframe in Flashback | Wirkung auf Effekte wird dokumentiert | offen |

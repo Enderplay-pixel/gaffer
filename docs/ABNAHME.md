@@ -14,6 +14,7 @@ Status: `offen` | `in Arbeit` | `erledigt` | `blockiert (Grund)`
 |---|---|---|---|---|---|
 | M1 | Lampen, Bounces, Flags, Floppys als Server-Entities; Pakete mit Rechte- und Bereichsprüfung; Op-Level 2 oder Spielerliste; übersteht Chunk-Entladen und Neustart; Flashback zeichnet auf, Replay-Änderungen als Überschreibung pro Replay | offen | | | |
 | M1-FB | Vorab-Test: Flashback zeichnet Gaffer-Entity-Daten vollständig auf und spielt sie ab | offen | | | |
+| M1-uhr | Effekt läuft bei eingefrorener Tageszeit weiter; Time-of-Day-Keyframe in Flashback ändert den Effektverlauf nicht; Freeze/Tickrate-Wirkung dokumentiert | offen | | | |
 | M1-a | Multiplayer: Client A setzt/ändert Licht, Client B sieht identische Werte | offen | | | |
 | M1-b | Multiplayer: Client ohne Rechte wird abgewiesen | offen | | | |
 | M1-c | Multiplayer: Lichter überstehen Server-Neustart und Chunk-Entladen | offen | | | |

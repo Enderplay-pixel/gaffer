@@ -13,8 +13,8 @@ Grundlage: [ARCHITEKTUR.md](ARCHITEKTUR.md). Abnahme: [ABNAHME.md](ABNAHME.md).
   ist gitignored, wird nur `modCompileOnly` eingebunden und für Tests lokal zur Laufzeit
   geladen, nie ins Jar oder Repo übernommen.
 - **Shaderpack:** Photon v1.3b liegt für Tests in `run/shaderpacks/` (gitignored).
-- **Paket** `gaffer.*`. **Maven-Gruppe: noch offen** (in deiner Antwort stand der
-  Platzhalter `<HIER EINTRAGEN>`), siehe Abschnitt 7.
+- **Paket** `gaffer.*`, **Maven-Gruppe** `io.github.enderplaypixel`.
+- **Status:** Plan freigegeben.
 
 ## 1. Repo-Aufbau
 
@@ -73,8 +73,11 @@ sichtbar, Editor schreibgeschützt, Pakete werden abgewiesen und protokolliert.
 **Beitritt.** Gaffer ist Pflicht auf beiden Seiten; ein Client ohne Gaffer scheitert an
 der Registry-Synchronisation (unbekannte Entity-Typen). Das ist gewollt.
 
-**Uhr.** Effekte (W8) und Cues (W7) sind Funktionen der Weltzeit (`world.getTime()` +
-Teiltick). Live läuft die Weltzeit am Server-Tick, im Replay am Replay-Tick.
+**Uhr.** Effekte (W8) und Cues (W7) sind Funktionen des fortlaufenden Tick-Zählers der
+Welt (`world.getTime()` + Teiltick), **niemals der Tageszeit** (`getTimeOfDay()`). Die
+Tageszeit wird beim Dreh oft mit `doDaylightCycle false` eingefroren und in Flashback per
+Time-of-Day-Keyframe verstellt; beides darf Effekte weder anhalten noch springen lassen.
+Live läuft der Zähler am Server-Tick, im Replay am Replay-Tick.
 
 **W9.** Lampe speichert UUID der Ziel-Entity und Versatz. Der Server setzt die Position
 jeden Tick nach (Bewegungspakete wie bei jeder Entity); der Client rendert die Lampe
@@ -83,7 +86,11 @@ relativ zur interpolierten Position des Ziels, damit sie nicht einen Tick hinter
 **Flashback.**
 1. **Zuerst ein Test**: Aufnahme mit Flashback, Lampe setzen, Dimmer während der Aufnahme
    fahren, Replay öffnen, Entity-Daten pro Tick gegen die aufgezeichneten Werte vergleichen
-   (auch Pult-Entity und Weltzeit). Ergebnis in ARCHITEKTUR.md, **bevor** weitergebaut wird.
+   (auch Pult-Entity und `getTime()`). Zusätzlich im selben Test:
+   - Effekt läuft bei eingefrorener Tageszeit (`doDaylightCycle false`) weiter,
+   - ein Time-of-Day-Keyframe in Flashback verändert den Effektverlauf nicht,
+   - Wirkung von Flashbacks Freeze- und Tickrate-Keyframes auf die Effekte wird gemessen.
+   Ergebnis in ARCHITEKTUR.md, **bevor** weitergebaut wird.
 2. Im Replay sind die aufgezeichneten Entities die Grundlage. Flashback-Keyframes (F1) und
    Änderungen im Replay-Editor liegen als **Überschreibung** darüber (Schlüssel:
    Entity-UUID + Parameter) und werden pro Replay gespeichert (Datei neben dem Replay,
@@ -230,9 +237,11 @@ Jeder Schritt endet mit Build, Tests, Eintrag in ABNAHME.md und einem Commit.
 | Flashback-Interna ändern sich | Mixins brechen | gegen 0.39.10 bauen, `require = 1`, Gaffer läuft ohne Flashback weiter |
 | Export weicht von Vorschau ab (gedrosselte Bakes, Frame-Zähler, Overlays) | F4 | Export-Modus: Bake-Drosselung aus, alle Zeitquellen an Weltzeit, Overlays aus; Pixelvergleich |
 
-## 8. Offene Fragen
+## 8. Entscheidungen
 
-1. **Maven-Gruppe:** In deiner Antwort stand der Platzhalter `<HIER EINTRAGEN>`. Welche Gruppe?
-2. **Solo, Stumm, Sichtbar (W14):** Mein Vorschlag: alle drei wirken nur lokal auf deinem
-   Client (Vorschau und Messung), werden nicht an den Server und andere Spieler gesendet
-   und wirken nicht im Export. So stört Solo beim Messen niemanden am Set. Einverstanden?
+1. Maven-Gruppe `io.github.enderplaypixel`, Paket `gaffer.*`.
+2. Solo, Stumm und Sichtbar (W14) wirken nur lokal auf dem eigenen Client (Vorschau und
+   Belichtungsmesser), gehen nicht an Server oder andere Spieler und wirken nie im Export.
+3. Kamera-Weißabgleich Kelvin + Tint, Standard 5600 K, pro Client.
+4. Kontrast Key zu Fill: `log2(Key/Fill)` in Blenden, Key allein und Fill allein gemessen.
+5. Effekt- und Cue-Uhr: `world.getTime()` + Teiltick, nie `getTimeOfDay()`.
