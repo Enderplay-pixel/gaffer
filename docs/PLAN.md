@@ -245,3 +245,16 @@ Jeder Schritt endet mit Build, Tests, Eintrag in ABNAHME.md und einem Commit.
 3. Kamera-Weißabgleich Kelvin + Tint, Standard 5600 K, pro Client.
 4. Kontrast Key zu Fill: `log2(Key/Fill)` in Blenden, Key allein und Fill allein gemessen.
 5. Effekt- und Cue-Uhr: `world.getTime()` + Teiltick, nie `getTimeOfDay()`.
+
+## 9. Stand nach der Cloud-Session (Übergabe an den lokalen PC)
+
+Fertig und getestet (`./gradlew test`, Modul `physics/`): Fotometrie, Belichtung, CIE-Farbe,
+Farbmodi, Dimmerkurven, Filter, Flächenlicht-Referenz, Messer, Effekte, Pult, Undo,
+Lichtplan, Setup-Geometrie.
+
+Vor der Abnahme auf dem PC mit Netzzugang zu erledigen:
+1. Quellen eintragen, die hier nicht abrufbar waren (Egress-Sperre): Lee/Rosco-Datenblätter
+   für CTO/CTB/Plus/Minus Green (Werte in `Filters.LIBRARY` sind leer), ISO 2720 bzw.
+   Sekonic-Datenblatt für `Exposure.C_FLAT`/`C_DOME`, Glühlampen-Exponenten (W4), Source
+   Match Quecksilber/Kerze/Mondlicht, STORM-700x-Wert (Newsshooter/Aputure).
+2. Ab Schritt 1 in Abschnitt 6 (Repo-Aufbau mit `core/` und `mod/`) weiterarbeiten.
