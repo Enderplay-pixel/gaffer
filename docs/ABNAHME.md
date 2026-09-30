@@ -13,7 +13,7 @@ piston-meta.mojang.com, libraries.minecraft.net):** Gebaut und getestet ist nur 
 Java-Modul `physics/` (`./gradlew test`, 50 Tests, 0 Fehler). Alles, was Minecraft, Iris,
 Photon, Flashback, einen Server oder eine GPU braucht, ist nicht begonnen und steht auf
 `offen`, auch wenn der rechnerische Kern schon getestet ist ("Kern" in der Spalte Test).
-Kein Punkt ist `erledigt`.
+Kein Hauptpunkt ist `erledigt`; nur der reine Unit-Test-Unterpunkt W13-t.
 
 ## Grundsatz
 
